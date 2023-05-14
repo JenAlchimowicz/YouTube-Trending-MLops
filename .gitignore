@@ -158,3 +158,23 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# Don't commit data but maintain structure
+data/benchmarks/*
+!data/benchmarks/.gitkeep
+
+data/feature_store/*
+!data/feature_store/.gitkeep
+
+data/processed_data/*
+!data/processed_data/.gitkeep
+
+data/raw_data/*
+!data/raw_data/.gitkeep
+
+data/segmented_data/*
+!data/segmented_data/.gitkeep
+
+# Dev stuff
+notebooks
+test*
