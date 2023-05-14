@@ -17,10 +17,11 @@ class config:  # noqa: N801
     # Add columns train order
 
     # S3 paths
-    # s3_bucket_name = "yt-trending-mlops"
-    # s3_raw_data_path = "data/raw_data/GB_youtube_trending_data.csv"
-    # s3_raw_data_categories_path = "data/raw_data/GB_category_id.json"
-    # s3_raw_data_key = "data/raw_data"
+    s3_bucket_name: str = "yt-trending-mlops"
+    s3_feature_store_dir: str = "data/feature_store"
+    s3_train_set_path: str = "data/processed_data/train.parquet"
+    s3_cross_val_set_path: str = "data/processed_data/cross_val.parquet"
+    s3_artifacts_dir: str = "artifacts"
 
     # Data transformation
     stats_from_past_days: List[int] = [7]

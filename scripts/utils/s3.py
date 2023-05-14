@@ -32,6 +32,16 @@ def download_parquet_from_s3_to_df(bucket_name: str, key: str) -> pd.DataFrame:
     return dataframe
 
 
+def upload_file_to_s3(filepath: str, bucket_name: str, key: str) -> None:
+    s3_client = boto3.client(
+        "s3",
+        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+    )
+    with open(filepath, "rb") as data:
+        s3_client.upload_fileobj(data, bucket_name, key)
+
+
 def list_files_in_s3_directory(bucket_name, directory_path):
     s3_client = boto3.client("s3")
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=directory_path)
@@ -48,4 +58,4 @@ def list_files_in_s3_directory(bucket_name, directory_path):
 # downloaded_dataframe = download_parquet_from_s3_to_df("yt-trending-mlops", "data/tmp.parquet")
 # print(downloaded_dataframe)
 
-print(list_files_in_s3_directory("yt-trending-mlops", "data/"))
+# print(list_files_in_s3_directory("yt-trending-mlops", "data/"))

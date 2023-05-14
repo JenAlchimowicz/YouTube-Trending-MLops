@@ -8,6 +8,7 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 from configs.config import config
 from scripts.data_transformation.feature_engineering import FeatureEngineer
+from scripts.utils.s3 import upload_df_to_s3_parquet, upload_file_to_s3
 
 
 class DataTransformer:
@@ -36,6 +37,9 @@ class DataTransformer:
 
         train.to_parquet(config.train_set_path)
         cross_val.to_parquet(config.cross_val_set_path)
+
+        upload_df_to_s3_parquet(train, config.s3_bucket_name, config.s3_train_set_path)
+        upload_df_to_s3_parquet(cross_val, config.s3_bucket_name, config.s3_cross_val_set_path)
 
     def load_data_in_window(self) -> pd.DataFrame:
         """Loads data in a specific time window.
@@ -206,7 +210,9 @@ class DataTransformer:
         return train, cross_val
 
     def save_artifact(self, artifact: Any, filename: str) -> None:
-        dump(artifact, config.artifacts_dir.joinpath(filename))
+        local_file_path = str(config.artifacts_dir.joinpath(filename))
+        dump(artifact, local_file_path)
+        upload_file_to_s3(local_file_path, config.s3_bucket_name, config.s3_artifacts_dir + "/" + filename)
 
     def save_benchmark_datasets(self, train: pd.DataFrame, cross_val: pd.DataFrame) -> None:
         train = train[["channelTitle", "category", "log_view_count"]]

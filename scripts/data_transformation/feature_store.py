@@ -7,6 +7,7 @@ import pandas as pd
 
 from configs.config import config
 from scripts.data_transformation.feature_engineering import FeatureEngineer
+from scripts.utils.s3 import upload_df_to_s3_parquet
 
 
 class FeatureStoreSupervisor:
@@ -183,3 +184,6 @@ class FeatureStoreSupervisor:
     def save_feature_store_data(self, fs_channels: pd.DataFrame, fs_category: pd.DataFrame) -> None:
         fs_channels.to_parquet(config.feature_store_dir / "fs_channels.parquet")
         fs_category.to_parquet(config.feature_store_dir / "fs_category.parquet")
+
+        upload_df_to_s3_parquet(fs_channels, config.s3_bucket_name, config.s3_feature_store_dir + "/fs_channels.parquet")
+        upload_df_to_s3_parquet(fs_category, config.s3_bucket_name, config.s3_feature_store_dir + "/fs_category.parquet")
