@@ -5,27 +5,31 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
+from configs.config import config
+
 
 class Benchmarks:
-    def __init__(
-            self,
-            train_set_benchmark_path: Path,
-            cross_val_set_benchmark_path: Path,
-        ) -> None:
-        self.train_set_benchmark_path = train_set_benchmark_path
-        self.cross_val_set_benchmark_path = cross_val_set_benchmark_path
+    def __init__(self) -> None:
+        pass
 
     def initialise_benchmarking(self):
         train, cross_val = self.load_benchmark_data()
         mea1, mse1 = self.benchmark_mean_across_entire_dataset(train, cross_val)
         mea2, mse2 = self.benchmark_mean_across_categories(train, cross_val)
         mea3, mse3 = self.benchmark_mean_across_channels(train, cross_val)
-        print("Benchmarks:")
-        print(mea1, mea2, mea3)
+        benchmarks = {
+            "mea_mean_across_entire_dataset": mea1,
+            "mse_mean_across_entire_dataset": mse1,
+            "mea_mean_across_categories": mea2,
+            "mse_mean_across_categories": mse2,
+            "mea_mean_across_channels": mea3,
+            "mse_mean_across_channels": mse3,
+        }
+        return benchmarks
 
     def load_benchmark_data(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        train_benchmark = pd.read_parquet(self.train_set_benchmark_path)
-        cross_val_benchmark = pd.read_parquet(self.cross_val_set_benchmark_path)
+        train_benchmark = pd.read_parquet(config.train_set_benchmark_path)
+        cross_val_benchmark = pd.read_parquet(config.cross_val_set_benchmark_path)
         return train_benchmark, cross_val_benchmark
 
     @staticmethod

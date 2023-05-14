@@ -1,53 +1,17 @@
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, List, Tuple
 
 import numpy as np
 import pandas as pd
 from joblib import dump
-from scripts.data_transformation.feature_engineering import FeatureEngineer
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+
+from configs.config import config
+from scripts.data_transformation.feature_engineering import FeatureEngineer
 
 
 class DataTransformer:
-    def __init__(
-            self,
-            segmented_data_dir: Path,
-            train_set_path: Path,
-            cross_val_set_path: Path,
-            train_set_length: Path,
-            cv_set_length: Path,
-            artifacts_dir: Path,
-            train_set_benchmark_path: Path,
-            cross_val_set_benchmark_path: Path,
-            feature_store_path: Path,
-            stats_from_past_n_days: List[int],
-            log_scale_columns: List[str],
-            min_max_scale_columns: List[str],
-            ohe_columns: List[str],
-        ) -> None:
-        """Init function.
-
-        Args:
-            segmented_data_dir (Path): Required naming format of files: "prefix_yyyy-mm-dd.parquet"
-            train_set_length (Path): Number of days to include in train set (data always starts from most recent day)
-            cv_set_length (Path): Number of days to include in cross_val set (data always starts from most recent day)
-        """
-        super().__init__()
-        self.segmented_data_dir = segmented_data_dir
-        self.train_set_path = train_set_path
-        self.cross_val_set_path = cross_val_set_path
-        self.train_set_length = train_set_length
-        self.cv_set_length = cv_set_length
-        self.artifacts_dir = artifacts_dir
-        self.train_set_benchmark_path = train_set_benchmark_path
-        self.cross_val_set_benchmark_path = cross_val_set_benchmark_path
-        self.feature_store_path = feature_store_path
-        self.stats_from_past_n_days = stats_from_past_n_days
-        self.log_scale_columns = log_scale_columns
-        self.min_max_scale_columns = min_max_scale_columns
-        self.ohe_columns = ohe_columns
-
+    def __init__(self) -> None:
         self.feature_engineer = FeatureEngineer()
 
     def initialise_data_transformation(self) -> None:
@@ -58,21 +22,20 @@ class DataTransformer:
         """
         df = self.load_data_in_window()
         df = self.initial_clean(df)
-        df = self.add_features(df, self.stats_from_past_n_days)
+        df = self.add_features(df, config.stats_from_past_days)
 
         train, cross_val = self.train_cv_split(df)
         train, cross_val = self.fill_null_values(train, cross_val)
-        train, cross_val = self.log_scale_features(train, cross_val, self.log_scale_columns)
-        train, cross_val = self.min_max_scale_features(train, cross_val, self.min_max_scale_columns)
+        train, cross_val = self.log_scale_features(train, cross_val, config.log_scale_columns)
+        train, cross_val = self.min_max_scale_features(train, cross_val, config.min_max_scale_columns)
         self.save_benchmark_datasets(train, cross_val)
-        self.save_to_feature_store(cross_val)
-        train, cross_val = self.ohe_features(train, cross_val, self.ohe_columns)
+        train, cross_val = self.ohe_features(train, cross_val, config.ohe_columns)
 
         train = train.drop(columns=["trending_date", "channelTitle"])
         cross_val = cross_val.drop(columns=["trending_date", "channelTitle"])
 
-        train.to_parquet(self.train_set_path)
-        cross_val.to_parquet(self.cross_val_set_path)
+        train.to_parquet(config.train_set_path)
+        cross_val.to_parquet(config.cross_val_set_path)
 
     def load_data_in_window(self) -> pd.DataFrame:
         """Loads data in a specific time window.
@@ -81,20 +44,20 @@ class DataTransformer:
             pd.DataFrame: Raw data containing both train and cv sets
         """
         # Get path to most recent data
-        all_segmented_filepaths = self.segmented_data_dir.glob("*")
+        all_segmented_filepaths = config.segmented_data_dir.glob("*")
         all_segmented_filenames = [filepath.name for filepath in list(all_segmented_filepaths)]
         most_recent_filename = sorted(all_segmented_filenames)[-1]
 
         # Check the most recent date
-        df_latest = pd.read_parquet(self.segmented_data_dir.joinpath(most_recent_filename))
+        df_latest = pd.read_parquet(config.segmented_data_dir.joinpath(most_recent_filename))
         most_recent_date_in_data = df_latest["trending_date"].max().to_pydatetime().replace(tzinfo=None)
 
         # Get date cutoff - we need extra 7 days to calculate historical features
-        date_cutoff = most_recent_date_in_data - timedelta(days = self.train_set_length + self.cv_set_length + 7)
+        date_cutoff = most_recent_date_in_data - timedelta(days = config.train_set_length + config.cv_set_length + 7)
 
         # Get filepaths within date range
         file_paths = []
-        for file_path in self.segmented_data_dir.glob("*.parquet"):
+        for file_path in config.segmented_data_dir.glob("*.parquet"):
             file_date_str = file_path.stem.split("_")[1]
             file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
             if file_date >= date_cutoff:
@@ -139,7 +102,7 @@ class DataTransformer:
         df = df.drop(columns=["likes", "comment_count"])
 
         most_recent_date_in_data = df["trending_date"].max().to_pydatetime().replace(tzinfo=None)
-        date_cutoff = most_recent_date_in_data - timedelta(days = self.train_set_length + self.cv_set_length)
+        date_cutoff = most_recent_date_in_data - timedelta(days = config.train_set_length + config.cv_set_length)
         df = df[df["trending_date"].map(lambda x: x.replace(tzinfo=None)) >= date_cutoff]
 
         return df
@@ -147,8 +110,8 @@ class DataTransformer:
 
     def train_cv_split(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         latest_date = df["trending_date"].max()
-        cv_set_range = latest_date - timedelta(days=self.cv_set_length)
-        train_set_range = latest_date - timedelta(days=self.train_set_length + self.cv_set_length)
+        cv_set_range = latest_date - timedelta(days=config.cv_set_length)
+        train_set_range = latest_date - timedelta(days=config.train_set_length + config.cv_set_length)
 
         cross_val = df[df["trending_date"] >= cv_set_range]
         train = df[(df["trending_date"] >= train_set_range) & (df["trending_date"] < cv_set_range)]
@@ -243,15 +206,11 @@ class DataTransformer:
         return train, cross_val
 
     def save_artifact(self, artifact: Any, filename: str) -> None:
-        dump(artifact, self.artifacts_dir.joinpath(filename))
+        dump(artifact, config.artifacts_dir.joinpath(filename))
 
     def save_benchmark_datasets(self, train: pd.DataFrame, cross_val: pd.DataFrame) -> None:
         train = train[["channelTitle", "category", "log_view_count"]]
         cross_val = cross_val[["channelTitle", "category", "log_view_count"]]
 
-        train.to_parquet(self.train_set_benchmark_path)
-        cross_val.to_parquet(self.cross_val_set_benchmark_path)
-
-    def save_to_feature_store(self, df) -> None:
-        df = df[df["trending_date"] == df["trending_date"].max()]
-        df.to_parquet(self.feature_store_path)
+        train.to_parquet(config.train_set_benchmark_path)
+        cross_val.to_parquet(config.cross_val_set_benchmark_path)

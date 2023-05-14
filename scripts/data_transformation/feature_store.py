@@ -4,6 +4,7 @@ from typing import Tuple
 import joblib
 import numpy as np
 import pandas as pd
+
 from configs.config import config
 from scripts.data_transformation.feature_engineering import FeatureEngineer
 
@@ -22,7 +23,9 @@ class FeatureStoreSupervisor:
 
     def load_all_data(self) -> pd.DataFrame:
         # Load all data
-        all_segmented_filepaths = config.segmented_data_dir.glob("*")
+        all_segmented_filepaths = list(config.segmented_data_dir.glob("*"))
+        if config.segmented_data_dir / ".gitkeep" in all_segmented_filepaths:
+            all_segmented_filepaths.remove(config.segmented_data_dir / ".gitkeep")
         df_list = []
         for file_path in all_segmented_filepaths:
             df = pd.read_parquet(file_path)
