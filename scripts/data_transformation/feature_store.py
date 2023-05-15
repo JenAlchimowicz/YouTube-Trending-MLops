@@ -202,5 +202,5 @@ class FeatureStoreSupervisor:
         fs_channels.to_parquet(config.feature_store_dir / "fs_channels.parquet")
         fs_category.to_parquet(config.feature_store_dir / "fs_category.parquet")
 
-        upload_df_to_s3_parquet(fs_channels, config.s3_bucket_name, config.s3_feature_store_dir + "/fs_channels.parquet")
-        upload_df_to_s3_parquet(fs_category, config.s3_bucket_name, config.s3_feature_store_dir + "/fs_category.parquet")
+        upload_df_to_s3_parquet(fs_channels, config.s3_bucket_name, config.s3_feature_store_dir+"/fs_channels.parquet")
+        upload_df_to_s3_parquet(fs_category, config.s3_bucket_name, config.s3_feature_store_dir+"/fs_category.parquet")

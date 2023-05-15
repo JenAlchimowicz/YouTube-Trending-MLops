@@ -93,7 +93,7 @@ class DataTransformer:
         # Filter to widnow
         most_recent_date_in_data = df["trending_date"].max()
         date_cutoff = most_recent_date_in_data - timedelta(
-            days = config.train_set_length + config.cv_set_length + max(config.stats_from_past_days)
+            days = config.train_set_length + config.cv_set_length + max(config.stats_from_past_days),
         )
         df = df[df["trending_date"] >= date_cutoff]
 
