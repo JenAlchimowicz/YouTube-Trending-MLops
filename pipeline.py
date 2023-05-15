@@ -1,14 +1,11 @@
-from scripts.data_ingestion.data_ingestor import DataIngestor
 from scripts.data_transformation.data_transformer import DataTransformer
 from scripts.data_transformation.feature_store import FeatureStoreSupervisor
-from scripts.training.benchmarks import Benchmarks
 from scripts.training.train import Trainer
 
 print("imports ok")
 
-ingestor = DataIngestor()
-ingestor.load_and_segment_data()
-print("Ingestion done")
+#./scripts/data_ingestion/data_download.sh
+# print("Ingestion done")
 
 data_transformer = DataTransformer()
 data_transformer.initialise_data_transformation()

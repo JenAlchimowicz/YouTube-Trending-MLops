@@ -24,14 +24,31 @@ class FeatureStoreSupervisor:
 
     def load_all_data(self) -> pd.DataFrame:
         # Load all data
-        all_segmented_filepaths = list(config.segmented_data_dir.glob("*"))
-        if config.segmented_data_dir / ".gitkeep" in all_segmented_filepaths:
-            all_segmented_filepaths.remove(config.segmented_data_dir / ".gitkeep")
-        df_list = []
-        for file_path in all_segmented_filepaths:
-            df = pd.read_parquet(file_path)
-            df_list.append(df)
-        df = pd.concat(df_list, ignore_index=True)
+        df = pd.read_csv(config.raw_data_path)
+        df["trending_date"] = pd.to_datetime(df["trending_date"])
+        categories = pd.read_json(config.categories_path)
+
+        # Unpack categories
+        categories = pd.concat([
+            categories.drop(["items"], axis=1),
+            categories["items"].apply(lambda x: pd.Series(x)),
+            ], axis=1)
+        categories = pd.concat([
+            categories.drop(["snippet"], axis=1),
+            categories["snippet"].apply(lambda x: pd.Series(x)),
+            ], axis=1)
+        if not {"id", "title"}.issubset(categories.columns):
+            raise ValueError("Categories file does not have required columns")
+        categories = (
+            categories
+            [["id", "title"]]
+            .assign(categoryId=categories["id"].astype("int64"))
+            .rename(columns={"title": "category"})
+            .drop(columns="id")
+            )
+
+        # Join categories to raw data
+        df = pd.merge(df, categories, on="categoryId").drop(columns=["categoryId"])
 
         # Initial clean
         df = df[["channelTitle", "trending_date", "category", "likes", "comment_count", "view_count"]]

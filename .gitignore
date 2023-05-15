@@ -172,9 +172,6 @@ data/processed_data/*
 data/raw_data/*
 !data/raw_data/.gitkeep
 
-data/segmented_data/*
-!data/segmented_data/.gitkeep
-
 # Dev stuff
 notebooks
 test*

@@ -41,38 +41,61 @@ class DataTransformer:
         upload_df_to_s3_parquet(train, config.s3_bucket_name, config.s3_train_set_path)
         upload_df_to_s3_parquet(cross_val, config.s3_bucket_name, config.s3_cross_val_set_path)
 
+
     def load_data_in_window(self) -> pd.DataFrame:
-        """Loads data in a specific time window.
+        """Loads raw data and categories mapping. Validates the raw data. Unpacks nested columns in categories mapping.
+        Joins categories to raw data. Filters to window.
+
+        Raises
+            ValueError: if raw_data_path is invalid
+            ValueError: if categories_path is invalid
+            ValueError: if raw data doesn't have required columns
+            ValueError: if categories dataframe doesn't have required columns
 
         Returns
             pd.DataFrame: Raw data containing both train and cv sets
         """
-        # Get path to most recent data
-        all_segmented_filepaths = config.segmented_data_dir.glob("*")
-        all_segmented_filenames = [filepath.name for filepath in list(all_segmented_filepaths)]
-        most_recent_filename = sorted(all_segmented_filenames)[-1]
+        if not config.raw_data_path.exists() or not config.raw_data_path.is_file():
+            raise ValueError("Invalid raw data file path")
+        if not config.categories_path.exists() or not config.categories_path.is_file():
+            raise ValueError("Invalid categories file path")
 
-        # Check the most recent date
-        df_latest = pd.read_parquet(config.segmented_data_dir.joinpath(most_recent_filename))
-        most_recent_date_in_data = df_latest["trending_date"].max().to_pydatetime().replace(tzinfo=None)
+        df = pd.read_csv(config.raw_data_path)
+        df["trending_date"] = pd.to_datetime(df["trending_date"])
+        necessary_cols = {"channelTitle", "trending_date", "categoryId", "likes", "comment_count", "view_count"}
+        if not necessary_cols.issubset(df.columns):
+            raise ValueError("Raw data file does not have required columns")
 
-        # Get date cutoff - we need extra 7 days to calculate historical features
-        date_cutoff = most_recent_date_in_data - timedelta(days = config.train_set_length + config.cv_set_length + 7)
+        categories = pd.read_json(config.categories_path)
 
-        # Get filepaths within date range
-        file_paths = []
-        for file_path in config.segmented_data_dir.glob("*.parquet"):
-            file_date_str = file_path.stem.split("_")[1]
-            file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
-            if file_date >= date_cutoff:
-                file_paths.append(file_path)
+        # Unpack categories
+        categories = pd.concat([
+            categories.drop(["items"], axis=1),
+            categories["items"].apply(lambda x: pd.Series(x)),
+            ], axis=1)
+        categories = pd.concat([
+            categories.drop(["snippet"], axis=1),
+            categories["snippet"].apply(lambda x: pd.Series(x)),
+            ], axis=1)
+        if not {"id", "title"}.issubset(categories.columns):
+            raise ValueError("Categories file does not have required columns")
+        categories = (
+            categories
+            [["id", "title"]]
+            .assign(categoryId=categories["id"].astype("int64"))
+            .rename(columns={"title": "category"})
+            .drop(columns="id")
+            )
 
-        # Load data
-        df_list = []
-        for file_path in file_paths:
-            df = pd.read_parquet(file_path)
-            df_list.append(df)
-        df = pd.concat(df_list, ignore_index=True)
+        # Join categories to raw data
+        df = pd.merge(df, categories, on="categoryId").drop(columns=["categoryId"])
+
+        # Filter to widnow
+        most_recent_date_in_data = df["trending_date"].max()
+        date_cutoff = most_recent_date_in_data - timedelta(
+            days = config.train_set_length + config.cv_set_length + max(config.stats_from_past_days)
+        )
+        df = df[df["trending_date"] >= date_cutoff]
 
         return df
 
