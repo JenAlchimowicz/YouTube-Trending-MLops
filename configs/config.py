@@ -3,7 +3,7 @@ from typing import List
 
 
 class config:  # noqa: N801
-    # Data paths
+    # Local data paths
     raw_data_path: Path = Path("data/raw_data/GB_youtube_trending_data.csv")
     categories_path: Path = Path("data/raw_data/GB_category_id.json")
     segmented_data_dir: Path = Path("data/segmented_data")
@@ -22,6 +22,10 @@ class config:  # noqa: N801
     s3_train_set_path: str = "data/processed_data/train.parquet"
     s3_cross_val_set_path: str = "data/processed_data/cross_val.parquet"
     s3_artifacts_dir: str = "artifacts"
+
+    # DynamoDB feature store config
+    fs_category_table_name_dynamodb: str = "yt-trending-categories"
+    fs_channel_table_name_dynamodb: str = "yt-trending-channels"
 
     # Data transformation
     stats_from_past_days: List[int] = [7]

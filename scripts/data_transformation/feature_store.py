@@ -1,9 +1,13 @@
+import os
 from datetime import timedelta
+from decimal import Decimal
 from typing import Tuple
 
+import boto3
 import joblib
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from configs.config import config
 from scripts.data_transformation.feature_engineering import FeatureEngineer
@@ -19,7 +23,9 @@ class FeatureStoreSupervisor:
         df = self.fill_data(df)
         df = self.transform(df)
         fs_channels, fs_category = self.separate_channels_and_categories(df)
-        self.save_feature_store_data(fs_channels, fs_category)
+        self.save_feature_store_data_to_s3(fs_channels, fs_category)
+        self.upload_data_to_dynamodb(fs_category, config.fs_category_table_name_dynamodb)
+        self.upload_data_to_dynamodb(fs_channels, config.fs_channel_table_name_dynamodb)
 
 
     def load_all_data(self) -> pd.DataFrame:
@@ -198,9 +204,27 @@ class FeatureStoreSupervisor:
 
         return fs_channels, fs_category
 
-    def save_feature_store_data(self, fs_channels: pd.DataFrame, fs_category: pd.DataFrame) -> None:
+    def save_feature_store_data_to_s3(self, fs_channels: pd.DataFrame, fs_category: pd.DataFrame) -> None:
         fs_channels.to_parquet(config.feature_store_dir / "fs_channels.parquet")
         fs_category.to_parquet(config.feature_store_dir / "fs_category.parquet")
 
         upload_df_to_s3_parquet(fs_channels, config.s3_bucket_name, config.s3_feature_store_dir+"/fs_channels.parquet")
         upload_df_to_s3_parquet(fs_category, config.s3_bucket_name, config.s3_feature_store_dir+"/fs_category.parquet")
+
+    def upload_data_to_dynamodb(self, df: pd.DataFrame, table_name: str) -> None:
+        # Connecto to DynamoDB
+        session = boto3.Session(
+            region_name="eu-west-1",
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+            )
+        resource = session.resource("dynamodb")
+        table = resource.Table(table_name)
+
+        # Convert numeric cols to Decimal
+        numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
+        df[numeric_cols] = df[numeric_cols].astype(str).applymap(lambda x: Decimal(x))
+
+        # Upload data to DynamoDB
+        for _, row in tqdm(df.iterrows(), total=df.shape[0]):
+            table.put_item(Item=row.to_dict())

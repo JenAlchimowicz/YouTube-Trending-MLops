@@ -2,25 +2,25 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
+import boto3
 import joblib
 import numpy as np
 import pandas as pd
 from xgboost import XGBRegressor
 
+from configs.config import config
+
 
 class PredictPipeline:
-    def __init__(
-            self,
-            checkpoint_path: Path,
-            train_df_path: Path,
-            feature_store_path: Path,
-            ohe_category: Path,
-        ) -> None:
+    def __init__(self) -> None:
         self.model = XGBRegressor()
-        self.model.load_model(checkpoint_path)
-        self.columns = pd.read_parquet(train_df_path).drop(columns=["log_view_count"]).columns.to_list()
-        self.fs = pd.read_parquet(feature_store_path)
-        self.ohe_category = joblib.load(ohe_category)
+        self.model.load_model(config.model_path)
+        self.columns = pd.read_parquet(config.train_set_path).drop(columns=["log_view_count"]).columns.to_list()
+
+        session = boto3.Session(region_name="eu-west-1")
+        resource = session.resource("dynamodb")
+        self.fs_categories = resource.Table("yt-trending-categories")
+        self.fs_channels = resource.Table("yt-trending-channels")
 
     def predict(self, request: Dict[str, str]) -> float:
         # Get input
@@ -29,40 +29,28 @@ class PredictPipeline:
         today = pd.Series(pd.to_datetime(datetime.now().date()))
 
         # Get features
-        fs_channel = (
-            self.fs
-            .drop_duplicates(subset=["channelTitle"])
-            [["channelTitle", "channel_trending_videos_last_7D", "log_channel_avg_n_views_7D",
-               "log_channel_avg_n_comments_7D", "log_channel_view_like_ratio_7D"]]
-        )
-        fs_category = (
-            self.fs
-            .drop_duplicates(subset=["category"])
-            [["category", "category_trending_videos_last_7D", "category_avg_n_views_7D",
-              "category_avg_n_comments_7D", "category_view_like_ratio_7D"]]
-        )
-        category_encoded = pd.DataFrame(
-            self.ohe_category.transform(np.array(category).reshape(-1, 1)).toarray(),
-            columns=self.ohe_category.get_feature_names_out(),
-            )
-        category_encoded.columns = [
-            ("category_" + col.split("_")[1]).replace(" ", "") for col in category_encoded.columns
-            ]
+        channel_features = self.fs_channels.get_item(Key={"channelTitle": channel})["Item"]
+        category_features = self.fs_categories.get_item(Key={"category": category})["Item"]
+
+        # Format Decimals to float
+        del channel_features["channelTitle"]
+        del category_features["category"]
+        channel_features = {k: float(v) for k, v in channel_features.items()}
+        category_features = {k: float(v) for k, v in category_features.items()}
 
         # Format request
-        request = pd.concat([
-            fs_channel[fs_channel["channelTitle"] == channel].drop(columns=["channelTitle"]).reset_index(drop=True),
-            fs_category[fs_category["category"] == category].drop(columns=["category"]).reset_index(drop=True),
+        model_input = pd.concat([
+            pd.DataFrame([channel_features]),
+            pd.DataFrame([category_features]),
             pd.DataFrame(today.dt.year, columns=["year"]),
             pd.DataFrame(today.dt.month, columns=["month"]),
             pd.DataFrame((today.dt.day_of_week <= 4).astype(int), columns=["is_weekday"]),
-            category_encoded,
-            ], axis=1,
+        ], axis = 1,
         )
-        request = request[self.columns]
+        model_input = model_input[self.columns]
 
         # Make prediction
-        prediction = self.model.predict(request).item()
-        prediction = np.exp(prediction)
+        prediction = self.model.predict(model_input).item()
+        prediction = np.exp(prediction).item()
 
         return prediction
