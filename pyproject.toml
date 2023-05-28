@@ -2,7 +2,6 @@
 name = "yt-trending-mlops"
 version = "1"
 dependencies = [
-    "django",
     "pandas",
     "pyarrow",
     "scikit-learn",

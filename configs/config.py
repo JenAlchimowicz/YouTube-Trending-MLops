@@ -44,4 +44,5 @@ class config:  # noqa: N801
     cv_set_length: int = 21  # in days
 
     neptune_project_name: str = "jen-alchimowicz/yt-trending-mlops"
+    neptune_model_registry_name: str = "YTTREN-XGB"
     hyperparam_tuning_n_trials: int = 10
