@@ -15,7 +15,7 @@ from configs.config import config
 class PredictPipeline:
     def __init__(self) -> None:
         self.model = self.retrieve_model()
-        self.columns = pd.read_parquet(config.train_set_path).drop(columns=["log_view_count"]).columns.to_list()
+        self.columns = self.model.feature_names
 
         session = boto3.Session(region_name="eu-west-1")
         resource = session.resource("dynamodb")
