@@ -1,0 +1,16 @@
+version: '3'
+services:
+
+  yt-trending-api:
+    build: 
+      context: .
+      dockerfile: ./predict_api/Dockerfile
+    ports:
+      - "8000:8000"
+
+  yt-trending-web:
+    build: 
+      context: .
+      dockerfile: ./web_endpoint/Dockerfile
+    ports:
+      - "8501:8501"

@@ -1,0 +1,14 @@
+[project]
+name = "yt-trending-mlops"
+version = "1"
+dependencies = [
+    "pandas",
+    "xgboost",
+    "neptune[xgboost]",
+    "boto3",
+    "fastapi",
+    "uvicorn[standard]",
+]
+
+[project.optional-dependencies]
+dev = []

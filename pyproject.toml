@@ -1,6 +1,11 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "yt-trending-mlops"
 version = "1"
+authors = [{ name = "jenalchimowicz" }]
 dependencies = [
     "pandas",
     "pyarrow",
@@ -11,6 +16,8 @@ dependencies = [
     "great_expectations",
     "streamlit",
     "boto3",
+    "fastapi",
+    "uvicorn[standard]",
 ]
 
 [project.optional-dependencies]

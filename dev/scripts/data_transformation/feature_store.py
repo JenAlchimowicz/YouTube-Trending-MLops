@@ -24,6 +24,7 @@ class FeatureStoreSupervisor:
         df = self.transform(df)
         fs_channels, fs_category = self.separate_channels_and_categories(df)
         self.save_feature_store_data_to_s3(fs_channels, fs_category)
+        self.save_item_lists_tos3(fs_channels, fs_category)
         self.upload_data_to_dynamodb(fs_category, config.fs_category_table_name_dynamodb)
         self.upload_data_to_dynamodb(fs_channels, config.fs_channel_table_name_dynamodb)
 
@@ -208,8 +209,31 @@ class FeatureStoreSupervisor:
         fs_channels.to_parquet(config.feature_store_dir / "fs_channels.parquet")
         fs_category.to_parquet(config.feature_store_dir / "fs_category.parquet")
 
-        upload_df_to_s3_parquet(fs_channels, config.s3_bucket_name, config.s3_feature_store_dir+"/fs_channels.parquet")
-        upload_df_to_s3_parquet(fs_category, config.s3_bucket_name, config.s3_feature_store_dir+"/fs_category.parquet")
+        upload_df_to_s3_parquet(
+            fs_channels, config.s3_bucket_name, config.s3_feature_store_dir + "/fs_channels.parquet",
+        )
+        upload_df_to_s3_parquet(
+            fs_category, config.s3_bucket_name, config.s3_feature_store_dir + "/fs_category.parquet",
+        )
+
+    def save_item_lists_tos3(self, fs_channels: pd.DataFrame, fs_category: pd.DataFrame) -> None:
+        channel_list = (
+            fs_channels
+            [["channelTitle"]]
+            .drop_duplicates()
+        )
+        categories_list = (
+            fs_category
+            [["category"]]
+            .drop_duplicates()
+        )
+        upload_df_to_s3_parquet(
+            channel_list, config.s3_bucket_name, config.s3_item_list_dir + "/channel_list.parquet",
+        )
+        upload_df_to_s3_parquet(
+            categories_list, config.s3_bucket_name, config.s3_item_list_dir + "/categories_list.parquet",
+        )
+
 
     def upload_data_to_dynamodb(self, df: pd.DataFrame, table_name: str) -> None:
         # Connecto to DynamoDB

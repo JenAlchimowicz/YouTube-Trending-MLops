@@ -160,19 +160,14 @@ cython_debug/
 #.idea/
 
 # Don't commit data but maintain structure
-data/benchmarks/*
-!data/benchmarks/.gitkeep
-
-data/feature_store/*
-!data/feature_store/.gitkeep
-
-data/processed_data/*
-!data/processed_data/.gitkeep
-
-data/raw_data/*
+dev/data/*
+!dev/data/benchmarks/.gitkeep
+!dev/data/feature_store/.gitkeep
+!dev/data/processed_data/.gitkeep
 !data/raw_data/.gitkeep
 
 # Dev stuff
 notebooks
 test*
 usefull_commands.txt
+archive

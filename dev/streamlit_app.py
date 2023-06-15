@@ -1,22 +1,21 @@
 import streamlit as st
+
 from configs.config import config
 from scripts.predict_pipeline.predict import PredictPipeline
 
 st.set_page_config(
     page_title="YT views predict",
-    # page_icon=""
+    page_icon="🐙",
 )
 
 st.title("YouTube views prediction")
 
-@st.cache_data
+@st.cache_resource()
 def load_predict_pipeline():
-    return PredictPipeline(
-        checkpoint_path=config.model_path,
-        train_df_path=config.train_set_path,
-        feature_store_path=config.feature_store_path,
-        ohe_category=config.artifacts_dir.joinpath("ohe_encoder_category.joblib"),
-    )
+    a = PredictPipeline()
+    from time import sleep
+    sleep(5)
+    return a
 
 predict_pipeline = load_predict_pipeline()
 
@@ -38,7 +37,9 @@ with st.form(key="my_form"):
     st.write("Predicted number of views:")
 
     if submitted:
+        if payload["channel"] == "Other":
+            payload["channel"] = "unk"
+        if payload["category"] == "Other":
+            payload["category"] = "unk"
         preds = predict_pipeline.predict(payload)
-        st.info(f"{int(preds):.2f}")
-
-# st.info("asd")
+        st.info(f"{int(preds):.0f}")

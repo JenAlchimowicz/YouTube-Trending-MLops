@@ -116,6 +116,7 @@ class Trainer:
         xgb.train(
             params=params_reg,
             dtrain=dtrain,
+            num_boost_round=config.num_boosting_rounds_final_model,
             evals=[(dtrain, "train")],
             callbacks=[neptune_callback],
         )
