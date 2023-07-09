@@ -1,0 +1,13 @@
+[project]
+name = "yt-trending-mlops-monolith-predict"
+version = "1"
+dependencies = [
+    "pandas",
+    "streamlit",
+    "boto3",
+    "neptune[xgboost]",
+    "xgboost",
+]
+
+[project.optional-dependencies]
+dev = []
