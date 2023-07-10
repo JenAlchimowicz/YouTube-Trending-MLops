@@ -18,6 +18,7 @@ class config:  # noqa: N801
 
     # S3 paths
     s3_bucket_name: str = "yt-trending-mlops"
+    s3_raw_data_dir: str = "data/raw_data"
     s3_feature_store_dir: str = "data/feature_store"
     s3_item_list_dir: str = "data/item_lists"
     s3_train_set_path: str = "data/processed_data/train.parquet"

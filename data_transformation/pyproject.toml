@@ -1,0 +1,12 @@
+[project]
+name = "yt-trending-mlops"
+version = "1"
+dependencies = [
+    "pandas",
+    "pyarrow",
+    "boto3",
+    "scikit-learn",
+]
+
+[project.optional-dependencies]
+dev = []
