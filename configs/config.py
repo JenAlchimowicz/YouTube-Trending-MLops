@@ -20,6 +20,7 @@ class config:  # noqa: N801
     s3_bucket_name: str = "yt-trending-mlops"
     s3_raw_data_dir: str = "data/raw_data"
     s3_feature_store_dir: str = "data/feature_store"
+    s3_benchmark_data_dir: str = "data/benchmarks"
     s3_item_list_dir: str = "data/item_lists"
     s3_train_set_path: str = "data/processed_data/train.parquet"
     s3_cross_val_set_path: str = "data/processed_data/cross_val.parquet"

@@ -269,3 +269,14 @@ class DataTransformer:
 
         train.to_parquet(config.train_set_benchmark_path)
         cross_val.to_parquet(config.cross_val_set_benchmark_path)
+
+        upload_df_to_s3_parquet(
+            train,
+            config.s3_bucket_name,
+            config.s3_benchmark_data_dir + "/train_benchmark.parquet",
+        )
+        upload_df_to_s3_parquet(
+            cross_val,
+            config.s3_bucket_name,
+            config.s3_benchmark_data_dir + "/cross_val_benchmark.parquet",
+        )
