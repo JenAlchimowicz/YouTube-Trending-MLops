@@ -19,7 +19,7 @@ Steps covered:
 5. Develop and deploy a retraining pipeline
 6. Monitor the model performance
 
-The focus is on the `tools` and `ML best practices`. In particular, dockerizing and deploying to AWS the two key pipelines: retraining and inference. The problem itself - predicting YouTube views from just the channel name and video category - is rather trivial, and would usually be more complex in the real world. However, the methods of managing the ML lifecycle are very relevant and can be used to deploy real-world projects.
+The focus is on the `tools` and `ML best practices`. In particular, dockerizing and deploying to AWS the two key pipelines: retraining and inference. The problem itself - predicting YouTube views from just the channel name and video category - is rather trivial, and would usually be more complex in the real world. However, the methods of managing the ML lifecycle are relevant and can be used to deploy real-world projects.
 
 Inference endpoint available at: [mlprojectsbyjen.com](https://mlprojectsbyjen.com)
 
@@ -28,6 +28,7 @@ Inference endpoint available at: [mlprojectsbyjen.com](https://mlprojectsbyjen.c
 <h2 id="project-description"> :book: Table of contents </h2>
 
 <ol>
+  <li><a href="#repo-structure"> ➤ Repo structure </a></li>
   <li><a href="#inference"> ➤ Inference pipeline </a></li>
     <ul>
       <li><a href="#inference-capabilities"> Capabilities </a></li>
@@ -40,34 +41,23 @@ Inference endpoint available at: [mlprojectsbyjen.com](https://mlprojectsbyjen.c
       <li><a href="#retraining-infra"> AWS infrastructure </a></li>
       <li><a href="#retraining-tools"> Tools </a></li>
     </ul>
-  <li><a href="#repo-structure"> ➤ Repo structure </a></li>
 </ol>
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
-<h2 id="inference"> :pencil: Inference pipeline </h2>
+<h2 id="repo-structure"> :pencil: Repo structure </h2>
 
-<h3 id="inference-capabilities"> Capabilities </h3>
+The repo consists of 7 key components. Each is a small, separate project with it's own directory, requirements, docker image and AWS permissions.
 
-Inference pipeline consists of two components: web endpoint and prediction API. The web endpoint is resposible for the user interface. Prediction API is resonsible for accepting requests from the web endpoint and responding with the predictions made by ML model. The components are separated using Elastic Load Balancers (ELB). Each component is wrapped in a docker container, deployed using Elastic Container Service (ECS) and placed in an Auto Scaling Group (ASG), allowing for quick `scalability`. All the services are spread across 3 Availability Zones (AZ) ensuring `high availability`.
-
-<h3 id="inference-infra"> AWS insfrastructure </h3>
-
-The architecture follows a simple 2-tier design. The traffic flows from users to the external Application Load Balancer (ALB), which is then distributed across Elastic Container Service (ECS) Tasks. When the user presses **predict** on the web app, a request is sent to the internal ALB. The App tier Tasks compute the ML prediction and return in back to the Web tier, where the results are displayed back to the user.
-
-</br>
-
-<div align="center">
-  <img width="700" src="https://github.com/JenAlchimowicz/YouTube-Trending-MLops/assets/74935134/be883aec-3e69-4fd3-91ec-91d49d6920a7">
-</div>
-
-</br>
-
-\* Why is the App tier public? Because NAT Gateways are expensive for a small project such as this one - around 40$ per month per AZ. There are no security concerns so making the App Tier public seems most reasonable.
-
-** In reality there are 3 AZs configured
-
-*** Depending on when you are reading this, the endpoind mlprojectsbyjen.com might actually use a monolith deployment instead of a 2-tier architecture. It doesn't scale that well but allows for less Tasks to be running which cuts costs.
+- `configs` - congif files shared across all components  
+- `data_ingestion` - loads data from the internet into S3  
+- `data_transformation` - processes raw data. Outputs training datasets and artifacts  
+- `dev` - directory with development files. Not used in the final product  
+- `feature_store_update` - calculates features from raw data. Uploads features to DynamoDB  
+- `predict_api` - host API server that outputs model predictions  
+- `predict_monolith_deployment` - cost cutting measure. Merges `predict_api` and `web_endpoint` into one deployment  
+- `training` - trains and tunes ML models  
+- `web_endpoint` - user interface. Calls `prediction_api` for model predictions
 
 <h3 id="inference-tools"> Tools </h3>
 
@@ -79,6 +69,32 @@ AWS Service choices:
 - `Feature Store` - DynamoDB for quick read access
 - `Scaling and High Availability` - ALB and ASG as they are the recommended standard in AWS
 - `Access and security` - IAM Roles for AWS access and SSM Parameter Store for distributing keys for external services such as Neptune AI
+
+![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
+
+<h2 id="inference"> :pencil: Inference pipeline </h2>
+
+<h3 id="inference-capabilities"> Capabilities </h3>
+
+Inference pipeline consists of two components: web endpoint and prediction API. The web endpoint is resposible for the user interface. Prediction API is resonsible for accepting requests from the web endpoint and responding with the predictions made by ML model. The components are separated using Elastic Load Balancers (ELB). Each component is wrapped in a docker container, deployed using Elastic Container Service (ECS) and placed in an Auto Scaling Group (ASG), allowing for quick `scalability`. All the services are spread across 3 Availability Zones (AZ) ensuring `high availability`.
+
+<h3 id="inference-infra"> AWS insfrastructure </h3>
+
+The architecture follows a simple 2-tier design. The traffic flows from users to the external Application Load Balancer (ALB), which distributes it across Elastic Container Service (ECS) Tasks. When the user presses **predict** on the web app, a request is sent to the internal ALB. The App tier Tasks compute the ML predictions and return them back to the Web tier, where the results are displayed to the user.
+
+</br>
+
+<div align="center">
+  <img width="700" src="https://github.com/JenAlchimowicz/YouTube-Trending-MLops/assets/74935134/be883aec-3e69-4fd3-91ec-91d49d6920a7">
+</div>
+
+</br>
+
+\* Why is the App tier public? NAT Gateways are expensive for a small project such as this one - around 40$ per month per AZ. There are no major security concerns with this project and all components in the App tier have configured security groups to only allow traffic from relevant services.
+
+** In reality there are 3 AZs configured
+
+*** Depending on when you are reading this, the endpoind mlprojectsbyjen.com might actually use a monolith deployment on an EC2 instead of a 2-tier ECS-based architecture. It doesn't scale but it allows to avoid passive ALB charges, cutting down the costs from around $100 a month to around $10.
 
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
@@ -92,10 +108,4 @@ In progress...
 In progress...
 
 <h3 id="retraining-tools"> Tools </h3>
-In progress...
-
-
-![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
-
-<h2 id="repo-structure"> :pencil: Repo structure </h2>
 In progress...
