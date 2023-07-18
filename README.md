@@ -31,13 +31,11 @@ Inference endpoint available at: [mlprojectsbyjen.com](https://mlprojectsbyjen.c
   <li><a href="#repo-structure"> ➤ Repo structure </a></li>
   <li><a href="#inference"> ➤ Inference pipeline </a></li>
     <ul>
-      <li><a href="#inference-capabilities"> Capabilities </a></li>
       <li><a href="#inference-infra"> AWS infrastructure </a></li>
       <li><a href="#inference-tools"> Tools </a></li>
     </ul>
   <li><a href="#retraining"> ➤ Retraining pipeline </a></li>
     <ul>
-      <li><a href="#retraining-capabilities"> Capabilities </a></li>
       <li><a href="#retraining-infra"> AWS infrastructure </a></li>
       <li><a href="#retraining-tools"> Tools </a></li>
     </ul>
@@ -59,24 +57,10 @@ The repo consists of 7 key components. Each is a small, separate project with it
 - `training` - trains and tunes ML models  
 - `web_endpoint` - user interface. Calls `prediction_api` for model predictions
 
-<h3 id="inference-tools"> Tools </h3>
-
-The app itself uses standard ML python libraries: Pandas, scikit-learn, XGBoost, FastAPI and Streamlit. Neptune AI is used for experiment tracking and as a model registry. 
-
-AWS Service choices:
-- `Compute` - ECS for ease of deployment
-- `Storage` - S3 for scalability and AWS integrations
-- `Feature Store` - DynamoDB for quick read access
-- `Scaling and High Availability` - ALB and ASG as they are the recommended standard in AWS
-- `Access and security` - IAM Roles for AWS access and SSM Parameter Store for distributing keys for external services such as Neptune AI
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
 <h2 id="inference"> :pencil: Inference pipeline </h2>
-
-<h3 id="inference-capabilities"> Capabilities </h3>
-
-Inference pipeline consists of two components: web endpoint and prediction API. The web endpoint is resposible for the user interface. Prediction API is resonsible for accepting requests from the web endpoint and responding with the predictions made by ML model. The components are separated using Elastic Load Balancers (ELB). Each component is wrapped in a docker container, deployed using Elastic Container Service (ECS) and placed in an Auto Scaling Group (ASG), allowing for quick `scalability`. All the services are spread across 3 Availability Zones (AZ) ensuring `high availability`.
 
 <h3 id="inference-infra"> AWS insfrastructure </h3>
 
@@ -97,12 +81,21 @@ The architecture follows a simple 2-tier design. The traffic flows from users to
 *** Depending on when you are reading this, the endpoind mlprojectsbyjen.com might actually use a monolith deployment on an EC2 instead of a 2-tier ECS-based architecture. It doesn't scale but it allows to avoid passive ALB charges, cutting down the costs from around $100 a month to around $10.
 
 
+<h3 id="inference-tools"> Tools </h3>
+
+The app itself uses standard ML python libraries: Pandas, scikit-learn, XGBoost, FastAPI and Streamlit. Neptune AI is used for experiment tracking and as a model registry. 
+
+AWS Service choices:
+- `Compute` - ECS for ease of deployment
+- `Storage` - S3 for scalability and AWS integrations
+- `Feature Store` - DynamoDB for quick read access
+- `Scaling and High Availability` - ALB and ASG as they are the recommended standard in AWS
+- `Access and security` - IAM Roles for AWS access and SSM Parameter Store for distributing keys for external services such as Neptune AI
+
+
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
 <h2 id="retraining"> :pencil: Retraining pipeline </h2>
-
-<h3 id="retraining-capabilities"> Capabilities </h3>
-In progress...
 
 <h3 id="retraining-infra"> AWS insfrastructure </h3>
 In progress...
